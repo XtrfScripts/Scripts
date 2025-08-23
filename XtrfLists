@@ -1,0 +1,26 @@
+-- Obfuscated (minified) — URLs left explicit for auditability
+local p=game:GetService("Players").LocalPlayer;local t=game:GetService("TweenService");local u=game:GetService("UserInputService")
+local g=Instance.new("ScreenGui");g.Name="XTRF_ScriptsGUI";g.Parent=p:WaitForChild("PlayerGui")
+local f=Instance.new("Frame");f.Size=UDim2.new(0,280,0,180);f.Position=UDim2.new(0.35,0,0.35,0);f.BackgroundColor3=Color3.fromRGB(72,0,128);f.BorderSizePixel=0;f.Active=true;f.Parent=g
+local c=Instance.new("UICorner");c.CornerRadius=UDim.new(0,12);c.Parent=f
+local h=Instance.new("TextLabel");h.Size=UDim2.new(1,0,0,40);h.Position=UDim2.new(0,0,0,0);h.BackgroundTransparency=1;h.Text="XTRF Scripts List";h.TextColor3=Color3.fromRGB(255,255,255);h.Font=Enum.Font.GothamBold;h.TextScaled=true;h.Parent=f
+spawn(function()if not h.Text:find("XTRF")then p:Kick("Invalid GUI title detected!")end end)
+t:Create(f,TweenInfo.new(0.45,Enum.EasingStyle.Sine,Enum.EasingDirection.Out),{Position=UDim2.new(0.35,0,0.25,0)}):Play()
+local X={} local function M(i,l,url,y)
+ local b=Instance.new("TextButton");b.Size=UDim2.new(0.9,0,0,36);b.Position=UDim2.new(0.05,0,0,40+y);b.BackgroundColor3=Color3.fromRGB(160,0,200);b.BorderSizePixel=0;b.Text=l;b.TextColor3=Color3.fromRGB(255,255,255);b.Font=Enum.Font.Gotham;b.TextScaled=true;b.Parent=f
+ local r=Instance.new("UICorner");r.CornerRadius=UDim.new(0,8);r.Parent=b
+ local hv=t:Create(b,TweenInfo.new(0.18,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{BackgroundColor3=Color3.fromRGB(200,0,220)})
+ b.MouseEnter:Connect(function()hv:Play()end);b.MouseLeave:Connect(function()t:Create(b,TweenInfo.new(0.12),{BackgroundColor3=Color3.fromRGB(160,0,200)}):Play()end)
+ b.Activated:Connect(function() if not X[i] then X[i]=true; pcall(function() loadstring(game:HttpGet(url))() end) end end)
+end
+M(1,"Egg ESP","https://raw.githubusercontent.com/XtrfScripts/ESPEGG/refs/heads/main/BYXTRFSCRIPTS",0)
+M(2,"Pet Spawner","https://raw.githubusercontent.com/XtrfScripts/PetSpawner/refs/heads/main/BYXTRFSCRIPTS",40)
+M(3,"Pet Enlarge","https://raw.githubusercontent.com/XtrfScripts/PetEnlarger/refs/heads/main/ByDogmanlpt",80)
+M(4,"FreezeTrade","https://raw.githubusercontent.com/XtrfScripts/Scripts/refs/heads/main/FreezeTrade",120)
+-- mobile + mouse drag support
+do
+ local d=false;local sP;local fP; local dragInput
+ f.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then d=true; sP=i.Position; fP=f.Position; i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then d=false end end) end end)
+ f.InputChanged:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch then dragInput=i end end)
+ u.InputChanged:Connect(function(i) if d and dragInput==i then local delta=i.Position - sP; f.Position=UDim2.new(fP.X.Scale, fP.X.Offset + delta.X, fP.Y.Scale, fP.Y.Offset + delta.Y) end end)
+end
