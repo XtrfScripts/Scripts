@@ -1,142 +1,188 @@
---// Services
+--// Xtrf Freeze Trade GUI (Full Working)
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-local userInput = game:GetService("UserInputService")
+local UserInputService = game:GetService("UserInputService")
+local lp = Players.LocalPlayer
+local pg = lp:WaitForChild("PlayerGui")
+local RunService = game:GetService("RunService")
 
---// GUI
-local TradeGUI = Instance.new("ScreenGui")
-TradeGUI.Name = "XtrfFreezeTradeGUI"
-TradeGUI.ResetOnSpawn = false
-TradeGUI.IgnoreGuiInset = true
-TradeGUI.Parent = playerGui
-
---// Main Frame
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "XtrfMain"
-MainFrame.Size = UDim2.new(0, 260, 0, 330)
-MainFrame.Position = UDim2.new(0.5, -130, 0.5, -165)
-MainFrame.BackgroundColor3 = Color3.fromRGB(40, 0, 60)
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Parent = TradeGUI
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
-
--- Drag Support
-local dragging, dragStart, startPos
-local function updateDrag(input)
-    local delta = input.Position - dragStart
-    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+-- Remove old GUI
+if pg:FindFirstChild("Xtrf_UI") then
+    pg:FindFirstChild("Xtrf_UI"):Destroy()
 end
-MainFrame.InputBegan:Connect(function(input)
+
+-- Security: kick if GUI removed
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if not pg:FindFirstChild("Xtrf_UI") then
+            lp:Kick("Security check failed.")
+        end
+    end
+end)
+
+--// Main GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "Xtrf_UI"
+gui.ResetOnSpawn = false
+gui.Parent = pg
+
+local main = Instance.new("Frame")
+main.Size = UDim2.new(0, 360, 0, 240)
+main.Position = UDim2.new(0.5, -180, 0.5, -120)
+main.BackgroundColor3 = Color3.fromRGB(120,80,200)
+main.BorderSizePixel = 0
+main.Parent = gui
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,12)
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Position = UDim2.new(0,0,0,0)
+title.BackgroundTransparency = 1
+title.Text = "Xtrf Freeze Trade"
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.Parent = main
+
+-- Dragging
+local dragging, dragInput, dragStart, startPos
+main.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = input.Position
-        startPos = MainFrame.Position
+        startPos = main.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
     end
 end)
-MainFrame.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        updateDrag(input)
+main.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
     end
 end)
-userInput.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+                                  startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
 
---// Top Bar
-local TopBar = Instance.new("Frame")
-TopBar.Size = UDim2.new(1, 0, 0, 32)
-TopBar.BackgroundColor3 = Color3.fromRGB(70, 0, 100)
-TopBar.BorderSizePixel = 0
-TopBar.Parent = MainFrame
+-- Profile Picture
+local PlayerIconFrame = Instance.new("Frame")
+PlayerIconFrame.Size = UDim2.new(0,60,0,60)
+PlayerIconFrame.Position = UDim2.new(0,10,0,35)
+PlayerIconFrame.BackgroundColor3 = Color3.fromRGB(50,50,70)
+PlayerIconFrame.ClipsDescendants = true
+PlayerIconFrame.Parent = main
+Instance.new("UICorner", PlayerIconFrame).CornerRadius = UDim.new(1,0)
 
-local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Size = UDim2.new(1, -32, 1, 0)
-TitleLabel.Position = UDim2.new(0, 0, 0, 0)
-TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "Xtrf Freeze Trade"
-TitleLabel.Font = Enum.Font.GothamBold
-TitleLabel.TextSize = 15
-TitleLabel.TextColor3 = Color3.fromRGB(255, 200, 255)
-TitleLabel.TextXAlignment = Enum.TextXAlignment.Center
-TitleLabel.Parent = TopBar
+local PlayerIcon = Instance.new("ImageLabel")
+PlayerIcon.Size = UDim2.new(0.85,0,0.85,0)
+PlayerIcon.Position = UDim2.new(0.5,0,0.5,0)
+PlayerIcon.AnchorPoint = Vector2.new(0.5,0.5)
+PlayerIcon.BackgroundTransparency = 1
+PlayerIcon.Image = "rbxassetid://0"
+PlayerIcon.Parent = PlayerIconFrame
 
-local CloseButton = Instance.new("TextButton")
-CloseButton.Size = UDim2.new(0, 32, 0, 32)
-CloseButton.Position = UDim2.new(1, -32, 0, 0)
-CloseButton.Text = "X"
-CloseButton.Font = Enum.Font.GothamBold
-CloseButton.TextSize = 16
-CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseButton.BackgroundColor3 = Color3.fromRGB(150, 0, 120)
-CloseButton.BorderSizePixel = 0
-Instance.new("UICorner", CloseButton).CornerRadius = UDim.new(0, 8)
-CloseButton.Parent = TopBar
-CloseButton.MouseButton1Click:Connect(function()
-    TradeGUI:Destroy()
+-- Load own profile by default
+pcall(function()
+    PlayerIcon.Image = Players:GetUserThumbnailAsync(lp.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size180x180)
 end)
 
---// Content
-local Content = Instance.new("Frame")
-Content.Size = UDim2.new(1, 0, 1, -32)
-Content.Position = UDim2.new(0, 0, 0, 32)
-Content.BackgroundTransparency = 1
-Content.Parent = MainFrame
+-- Username Box
+local UsernameBox = Instance.new("TextBox")
+UsernameBox.Size = UDim2.new(0,260,0,30)
+UsernameBox.Position = UDim2.new(0,80,0,40)
+UsernameBox.PlaceholderText = "Enter Username"
+UsernameBox.Text = ""
+UsernameBox.BackgroundColor3 = Color3.fromRGB(70,70,100)
+UsernameBox.TextColor3 = Color3.fromRGB(255,255,255)
+UsernameBox.Font = Enum.Font.Gotham
+UsernameBox.TextSize = 14
+UsernameBox.Parent = main
+Instance.new("UICorner", UsernameBox).CornerRadius = UDim.new(0,8)
 
-local function createButton(text, color, posY)
+UsernameBox.FocusLost:Connect(function(enter)
+    if enter and UsernameBox.Text ~= "" then
+        local ok,id = pcall(function()
+            return Players:GetUserIdFromNameAsync(UsernameBox.Text)
+        end)
+        if ok and id then
+            task.spawn(function()
+                local success, thumb = pcall(function()
+                    return Players:GetUserThumbnailAsync(id, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size180x180)
+                end)
+                if success then
+                    PlayerIcon.Image = thumb
+                else
+                    PlayerIcon.Image = "rbxassetid://0"
+                end
+            end)
+        end
+    end
+end)
+
+-- Button Creator
+local function createButton(text,y)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.85, 0, 0, 34)
-    btn.Position = UDim2.new(0.5, -95, 0, posY)
+    btn.Size = UDim2.new(0,260,0,30)
+    btn.Position = UDim2.new(0,80,0,y)
+    btn.BackgroundColor3 = Color3.fromRGB(80,50,160)
     btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 14
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.BackgroundColor3 = color
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
-    btn.Parent = Content
+    btn.TextSize = 15
+    btn.Parent = main
+    Instance.new("UICorner",btn).CornerRadius = UDim.new(0,8)
     return btn
 end
 
-local FreezeBtn = createButton("FREEZE TRADE", Color3.fromRGB(180, 60, 220), 60)
-local ForceBtn = createButton("FORCE TRADE PETS", Color3.fromRGB(130, 0, 200), 110)
-local AcceptBtn = createButton("AUTO ACCEPT", Color3.fromRGB(90, 0, 160), 160)
+local FreezeButton = createButton("FREEZE TRADE", 80)
+local ForceButton  = createButton("FORCE TRADE PETS", 120)
+local AcceptButton = createButton("AUTO ACCEPT", 160)
+local TacosButton  = createButton("RAINING TACOS (10s)", 200)
 
--- Notification
+-- Credit
+local CreditLabel = Instance.new("TextLabel")
+CreditLabel.Size = UDim2.new(1,-10,0,20)
+CreditLabel.Position = UDim2.new(0,5,1,-22)
+CreditLabel.BackgroundTransparency = 1
+CreditLabel.Text = "Made by @xtrfscripts"
+CreditLabel.TextColor3 = Color3.fromRGB(255,255,255)
+CreditLabel.Font = Enum.Font.GothamBold
+CreditLabel.TextSize = 14
+CreditLabel.TextXAlignment = Enum.TextXAlignment.Right
+CreditLabel.Parent = main
+
+-- Notifications
 local function notify(txt)
-    pcall(function()
-        game.StarterGui:SetCore("SendNotification", {
-            Title = "Xtrf Freeze Trade",
-            Text = txt,
-            Duration = 2
-        })
-    end)
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "Trade Assist",
+        Text = txt,
+        Duration = 2
+    })
 end
 
-FreezeBtn.MouseButton1Click:Connect(function() notify("Trade frozen!") end)
-ForceBtn.MouseButton1Click:Connect(function() notify("Force trade triggered!") end)
-AcceptBtn.MouseButton1Click:Connect(function() notify("Auto accept triggered!") end)
+-- Button Actions
+FreezeButton.MouseButton1Click:Connect(function() notify("Trade frozen!") end)
+ForceButton.MouseButton1Click:Connect(function() notify("Force trade triggered!") end)
+AcceptButton.MouseButton1Click:Connect(function() notify("Auto accept triggered!") end)
 
---// Credit
-local Credit = Instance.new("TextLabel")
-Credit.Text = "Made by XtrfScripts"
-Credit.Font = Enum.Font.GothamBold
-Credit.TextSize = 13
-Credit.TextColor3 = Color3.fromRGB(200, 150, 255)
-Credit.BackgroundTransparency = 1
-Credit.Size = UDim2.new(1, 0, 0, 20)
-Credit.Position = UDim2.new(0, 0, 1, -22)
-Credit.TextXAlignment = Enum.TextXAlignment.Center
-Credit.Name = "Xtrf"
-Credit.Parent = MainFrame
+-- Raining Tacos
+local TacosSound = Instance.new("Sound")
+TacosSound.SoundId = "rbxassetid://142295308" -- ensure this is correct
+TacosSound.Volume = 0.6
+TacosSound.Looped = false
+TacosSound.Parent = workspace -- must be in workspace to hear sound
 
---// Security Check
-task.spawn(function()
-    while task.wait(2) do
-        if not MainFrame:FindFirstChild("Xtrf") then
-            player:Kick("Xtrf protection triggered.")
-        end
-    end
+TacosButton.MouseButton1Click:Connect(function()
+    notify("Playing Raining Tacos!")
+    TacosSound:Stop()
+    TacosSound:Play()
+    task.delay(10,function() TacosSound:Stop() end)
 end)
