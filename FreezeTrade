@@ -1,113 +1,153 @@
+-- XTRF Freeze Trade (cleaned & readable)
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
 
-local lIlIlIIlI = game:GetService;
-local IlIIlIlII = lIlIlIIlI("\80\108\97\121\101\114\115"); -- Players
-local IIlIlIIlI = IlIIlIlII.LocalPlayer;
-local lllIIIllI = lIlIlIIlI("\85\115\101\114\73\110\112\117\116\83\101\114\118\105\99\101"); -- UserInputService
-
---// Kick check
-local IiIlIIlIl = (IIlIlIIlI.Name .. IIlIlIIlI.DisplayName):lower()
-if not string.find(IiIlIIlIl,"xtrf") then
-	IIlIlIIlI:Kick("\88\116\114\102 \70\114\101\101\122\101 \84\114\97\100\101\n\78\111\32\65\117\116\104")
-	return
+-- Kick check: combine username + displayname and ensure it contains "xtrf"
+local combined = (LocalPlayer.Name .. LocalPlayer.DisplayName):lower()
+if not string.find(combined, "xtrf") then
+    LocalPlayer:Kick("Xtrf Freeze Trade\nNo Auth")
+    return
 end
 
---// GUI
-local IlIIIlIII = Instance.new("\83\99\114\101\101\110\71\117\105")
-IlIIIlIII.Name = "\84\114\97\100\101\65\115\115\105\115\116\88\116\114\102"
-IlIIIlIII.ResetOnSpawn = false
-IlIIIlIII.IgnoreGuiInset = true
-IlIIIlIII.Parent = IIlIlIIlI:WaitForChild("\80\108\97\121\101\114\71\117\105")
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TradeAssistXtrf"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
-local IiIlIIIll = Instance.new("\70\114\97\109\101")
-IiIlIIIll.Size = UDim2.new(0,260,0,340)
-IiIlIIIll.Position = UDim2.new(0.5,-130,0.5,-170)
-IiIlIIIll.BackgroundColor3 = Color3.fromRGB(70,0,110)
-IiIlIIIll.Active = true
-IiIlIIIll.Parent = IlIIIlIII
-Instance.new("\85\73\67\111\114\110\101\114",IiIlIIIll).CornerRadius = UDim.new(0,12)
+-- Main Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 260, 0, 340)
+mainFrame.Position = UDim2.new(0.5, -130, 0.5, -170)
+mainFrame.BackgroundColor3 = Color3.fromRGB(70, 0, 110)
+mainFrame.Active = true
+mainFrame.Parent = screenGui
 
---// Drag
-local dragging,dragStart,startPos=false
-local function lIllIIlII(input)
-	local d=input.Position-dragStart
-	IiIlIIIll.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y)
+local frameCorner = Instance.new("UICorner", mainFrame)
+frameCorner.CornerRadius = UDim.new(0, 12)
+
+-- Dragging support
+local dragging = false
+local dragStart = Vector2.new()
+local startPos = UDim2.new()
+
+local function updateDrag(input)
+    local delta = input.Position - dragStart
+    mainFrame.Position = UDim2.new(
+        startPos.X.Scale, startPos.X.Offset + delta.X,
+        startPos.Y.Scale, startPos.Y.Offset + delta.Y
+    )
 end
-IiIlIIIll.InputBegan:Connect(function(i)
-	if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
-		dragging=true;dragStart=i.Position;startPos=IiIlIIIll.Position
-	end
+
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
 end)
-IiIlIIIll.InputChanged:Connect(function(i)
-	if dragging and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
-		lIllIIlII(i)
-	end
-end)
-lllIIIllI.InputEnded:Connect(function(i)
-	if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
-		dragging=false
-	end
+
+mainFrame.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        updateDrag(input)
+    end
 end)
 
---// Title
-local lIllIIlIl = Instance.new("\84\101\120\116\76\97\98\101\108",IiIlIIIll)
-lIllIIlIl.Size = UDim2.new(1,0,0,35)
-lIllIIlIl.BackgroundColor3 = Color3.fromRGB(50,0,80)
-lIllIIlIl.Text = "\88\116\114\102 Freeze Trade"
-lIllIIlIl.Font = Enum.Font.GothamBold
-lIllIIlIl.TextSize = 16
-lIllIIlIl.TextColor3 = Color3.new(1,1,1)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
 
---// Close Button
-local lIllIIlll = Instance.new("\84\101\120\116\66\117\116\116\111\110",IiIlIIIll)
-lIllIIlll.Size=UDim2.new(0,30,0,30)
-lIllIIlll.Position=UDim2.new(1,-32,0,2)
-lIllIIlll.Text="\88"
-lIllIIlll.Font=Enum.Font.GothamBold
-lIllIIlll.TextSize=16
-lIllIIlll.TextColor3=Color3.new(1,1,1)
-lIllIIlll.BackgroundColor3=Color3.fromRGB(150,40,60)
-Instance.new("\85\73\67\111\114\110\101\114",lIllIIlll).CornerRadius=UDim.new(0,6)
-lIllIIlll.MouseButton1Click:Connect(function()IlIIIlIII:Destroy()end)
+-- Title label
+local title = Instance.new("TextLabel", mainFrame)
+title.Size = UDim2.new(1, 0, 0, 35)
+title.BackgroundColor3 = Color3.fromRGB(50, 0, 80)
+title.Text = "Xtrf Freeze Trade"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BorderSizePixel = 0
 
---// Button Container
-local IllIIIllI=Instance.new("\Frame",IiIlIIIll)
-IllIIIllI.Size=UDim2.new(1,0,0,120)
-IllIIIllI.Position=UDim2.new(0,0,0,60)
-IllIIIllI.BackgroundTransparency=1
-local IlIllIIlI=Instance.new("\85\73\76\105\115\116\76\97\121\111\117\116",IllIIIllI)
-IlIllIIlI.SortOrder=Enum.SortOrder.LayoutOrder
-IlIllIIlI.Padding=UDim.new(0,8)
-IlIllIIlI.HorizontalAlignment=Enum.HorizontalAlignment.Center
+-- Close button
+local closeBtn = Instance.new("TextButton", mainFrame)
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -32, 0, 2)
+closeBtn.Text = "X"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 16
+closeBtn.TextColor3 = Color3.new(1,1,1)
+closeBtn.BackgroundColor3 = Color3.fromRGB(150,40,60)
+local closeCorner = Instance.new("UICorner", closeBtn)
+closeCorner.CornerRadius = UDim.new(0, 6)
+closeBtn.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
 
--- Button creator
-local function lIllIIIlI(t,c)
-	local b=Instance.new("\84\101\120\116\66\117\116\116\111\110")
-	b.Size=UDim2.new(0.8,0,0,32)
-	b.Text=t;b.Font=Enum.Font.GothamBold;b.TextSize=13
-	b.TextColor3=Color3.new(1,1,1);b.BackgroundColor3=c
-	Instance.new("\85\73\67\111\114\110\101\114",b).CornerRadius=UDim.new(0,8)
-	b.Parent=IllIIIllI
-	return b
+-- Button container and layout
+local buttonContainer = Instance.new("Frame", mainFrame)
+buttonContainer.Size = UDim2.new(1, 0, 0, 120)
+buttonContainer.Position = UDim2.new(0, 0, 0, 60)
+buttonContainer.BackgroundTransparency = 1
+
+local listLayout = Instance.new("UIListLayout", buttonContainer)
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Padding = UDim.new(0, 8)
+listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+-- Utility to create styled buttons
+local function createButton(text, bgColor)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.8, 0, 0, 32)
+    btn.Text = text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 13
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.BackgroundColor3 = bgColor
+    local corner = Instance.new("UICorner", btn)
+    corner.CornerRadius = UDim.new(0, 8)
+    btn.Parent = buttonContainer
+    return btn
 end
 
-local FreezeBtn=lIllIIIlI("\70\82\69\69\90\69 \84\82\65\68\69",Color3.fromRGB(200,140,255))
-local ForceBtn=lIllIIIlI("\70\79\82\67\69 \84\82\65\68\69",Color3.fromRGB(160,80,220))
-local AcceptBtn=lIllIIIlI("\65\85\84\79 \65\67\67\69\80\84",Color3.fromRGB(80,180,140))
+local freezeBtn = createButton("FREEZE TRADE", Color3.fromRGB(200,140,255))
+local forceBtn  = createButton("FORCE TRADE",  Color3.fromRGB(160,80,220))
+local acceptBtn = createButton("AUTO ACCEPT",  Color3.fromRGB(80,180,140))
 
--- Notifications
-local function Notify(t)
-	game.StarterGui:SetCore("\83\101\110\100\78\111\116\105\102\105\99\97\116\105\111\110",{Title="\88\116\114\102 Freeze",Text=t,Duration=2})
+-- Notification helper
+local function Notify(text)
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "Xtrf Freeze",
+        Text = text,
+        Duration = 2
+    })
 end
-FreezeBtn.MouseButton1Click:Connect(function()Notify("Trade Frozen!")end)
-ForceBtn.MouseButton1Click:Connect(function()Notify("Force Trade Triggered!")end)
-AcceptBtn.MouseButton1Click:Connect(function()Notify("Auto Accept Enabled!")end)
 
--- Credit
-local lIIIlIllI=Instance.new("\84\101\120\116\76\97\98\101\108",IiIlIIIll)
-lIIIlIllI.Size=UDim2.new(1,0,0,20)
-lIIIlIllI.Position=UDim2.new(0,0,1,-22)
-lIIIlIllI.BackgroundTransparency=1
-lIIIlIllI.Text="\84\105\107\116\111\107\58 @xtrfscripts"
-lIIIlIllI.Font=Enum.Font.GothamBold
-lIIIlIllI.TextSize=13
-lIIIlIllI.TextColor3=Color3.fromRGB(180,180,180)
+freezeBtn.MouseButton1Click:Connect(function()
+    Notify("Trade Frozen!")
+end)
+
+forceBtn.MouseButton1Click:Connect(function()
+    Notify("Force Trade Triggered!")
+end)
+
+acceptBtn.MouseButton1Click:Connect(function()
+    Notify("Auto Accept Enabled!")
+end)
+
+-- Credit label
+local credit = Instance.new("TextLabel", mainFrame)
+credit.Size = UDim2.new(1,0,0,20)
+credit.Position = UDim2.new(0,0,1,-22)
+credit.BackgroundTransparency = 1
+credit.Text = "Tiktok: @xtrfscripts"
+credit.Font = Enum.Font.GothamBold
+credit.TextSize = 13
+credit.TextColor3 = Color3.fromRGB(180,180,180)
