@@ -1,0 +1,248 @@
+-- Xtrf Pet Spawner (Fluent) - Toggle + Draggable toggle button + Mobile-friendly size
+-- Guard
+if getgenv().XTRF_SPAWNER_UI_LOADED then
+    return
+end
+getgenv().XTRF_SPAWNER_UI_LOADED = true
+
+-- Services
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+
+-- Helper: safe http get + loadstring
+local function safe_load(url)
+    local ok, res = pcall(function() return game:HttpGet(url) end)
+    if not ok or not res or #res == 0 then return nil, "HttpGet failed" end
+    local ok2, obj = pcall(function() return loadstring(res)() end)
+    if not ok2 then return nil, obj end
+    return obj
+end
+
+-- Load Spawner (safe)
+local Spawner, err1 = safe_load("https://gitlab.com/darkiedarkie/dark/-/raw/main/Spawner.lua")
+if not Spawner then
+    warn("Spawner load failed:", err1)
+end
+
+-- Load Fluent (release main.lua) - recommended way to load Fluent
+local Fluent, err2 = safe_load("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua")
+if not Fluent then
+    warn("Fluent load failed:", err2)
+    -- still continue (we'll fallback to simple messages) but UI will not work
+end
+
+-- Create Fluent window (comfortable mobile size)
+local Window
+if Fluent and Fluent.CreateWindow then
+    Window = Fluent:CreateWindow({
+        Title = "Xtrf Pet Spawner",
+        SubTitle = "Made by XtrfScripts",
+        TabWidth = 110,
+        Size = UDim2.fromOffset(440, 320), -- slightly bigger for mobile
+        Acrylic = false,
+        Theme = "Dark",
+        MinimizeKey = Enum.KeyCode.LeftControl
+    })
+else
+    Window = nil
+end
+
+-- State
+local State = { PetName = "", PetKg = "1", PetAge = "1", SeedName = "" }
+
+-- Helper to show notifications (works if Fluent loaded)
+local function notify(title, content, duration)
+    if Fluent and Fluent.Notify then
+        pcall(function() Fluent:Notify({ Title = title, Content = content, Duration = duration or 3 }) end)
+    else
+        -- fallback: set toggle text briefly (not ideal)
+        warn(title .. " - " .. tostring(content))
+    end
+end
+
+-- Build tabs & controls if Window exists
+if Window then
+    local PetTab  = Window:AddTab({ Title = "Pet",  Icon = "🐾" })
+    local SeedTab = Window:AddTab({ Title = "Seed", Icon = "🌱" })
+
+    PetTab:AddInput("PetName", {
+        Title = "Pet Name",
+        Placeholder = "e.g. Raccoon",
+        Callback = function(v) State.PetName = v or "" end
+    })
+    PetTab:AddInput("PetKg", {
+        Title = "KG",
+        Default = "1",
+        Numeric = true,
+        Callback = function(v) State.PetKg = v or "1" end
+    })
+    PetTab:AddInput("PetAge", {
+        Title = "Age",
+        Default = "1",
+        Numeric = true,
+        Callback = function(v) State.PetAge = v or "1" end
+    })
+    PetTab:AddButton({
+        Title = "Spawn Pet",
+        Callback = function()
+            if not Spawner or type(Spawner.SpawnPet) ~= "function" then
+                notify("Error", "Spawner not loaded or SpawnPet missing", 4)
+                return
+            end
+            local name = (State.PetName or ""):gsub("^%s*(.-)%s*$","%1")
+            if name == "" then notify("Error", "Enter Pet Name", 3); return end
+            local kg = tonumber(State.PetKg) or 1
+            local age = tonumber(State.PetAge) or 1
+            local ok, err = pcall(function() Spawner.SpawnPet(name, kg, age) end)
+            if ok then notify("Spawner", ("Spawned %s (%d KG, %d Age)"):format(name, kg, age)) 
+            else notify("Error", tostring(err), 5) end
+        end
+    })
+
+    SeedTab:AddInput("SeedName", {
+        Title = "Seed Name",
+        Placeholder = "e.g. Sunflower",
+        Callback = function(v) State.SeedName = v or "" end
+    })
+    SeedTab:AddButton({
+        Title = "Spawn Seed",
+        Callback = function()
+            if not Spawner or type(Spawner.SpawnSeed) ~= "function" then
+                notify("Error", "Spawner not loaded or SpawnSeed missing", 4)
+                return
+            end
+            local name = (State.SeedName or ""):gsub("^%s*(.-)%s*$","%1")
+            if name == "" then notify("Error","Enter Seed Name",3); return end
+            local ok, err = pcall(function() Spawner.SpawnSeed(name) end)
+            if ok then notify("Spawner", "Spawned Seed: "..name) else notify("Error", tostring(err), 5) end
+        end
+    })
+    SeedTab:AddButton({
+        Title = "Spin",
+        Callback = function()
+            if not Spawner or type(Spawner.Spin) ~= "function" then
+                notify("Error", "Spawner not loaded or Spin missing", 4)
+                return
+            end
+            local name = (State.SeedName or ""):gsub("^%s*(.-)%s*$","%1")
+            if name == "" then notify("Error","Enter Seed Name",3); return end
+            local ok, err = pcall(function() Spawner.Spin(name) end)
+            if ok then notify("Spawner", "Spinning "..name) else notify("Error", tostring(err), 5) end
+        end
+    })
+
+    -- optional: small Lists tab (if Spawner exposes them)
+    local okPets, pets = pcall(function() return Spawner and Spawner.GetPets and Spawner.GetPets() end)
+    local okSeeds, seeds = pcall(function() return Spawner and Spawner.GetSeeds and Spawner.GetSeeds() end)
+    if (okPets and pets) or (okSeeds and seeds) then
+        local L = Window:AddTab({ Title = "Lists", Icon = "📜" })
+        local function listToText(t)
+            local out = {}
+            for i,v in ipairs(t) do out[#out+1] = tostring(v) end
+            return table.concat(out, ", ")
+        end
+        if okPets and pets then L:AddParagraph({ Title = "Supported Pets", Content = listToText(pets) }) end
+        if okSeeds and seeds then L:AddParagraph({ Title = "Supported Seeds", Content = listToText(seeds) }) end
+    end
+end
+
+-- Create Toggle Button (ScreenGui) and make it draggable + toggles Fluent window
+local toggleGui = Instance.new("ScreenGui")
+toggleGui.Name = "XtrfSpawner_ToggleGui"
+toggleGui.ResetOnSpawn = false
+toggleGui.Parent = CoreGui
+
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Name = "XtrfToggleBtn"
+toggleBtn.Size = UDim2.new(0, 130, 0, 44)
+toggleBtn.Position = UDim2.new(0, 8, 0.42, 0)
+toggleBtn.AnchorPoint = Vector2.new(0,0)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+toggleBtn.BorderSizePixel = 0
+toggleBtn.TextColor3 = Color3.new(1,1,1)
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 16
+toggleBtn.Text = "Hide UI" -- starts visible
+toggleBtn.Parent = toggleGui
+toggleBtn.ZIndex = 10
+
+-- Draggable implementation (works for mouse + touch)
+local dragging = false
+local dragInput, dragStart, startPos
+toggleBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = toggleBtn.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        toggleBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- Helper: attempt to show/hide Fluent window with multiple fallbacks
+local function setFluentVisible(visible)
+    -- 1) try Window show/hide API (many Fluent forks provide these)
+    local ok = false
+    if Window then
+        pcall(function()
+            if visible then
+                if Window.Show then Window:Show(); ok = true
+                elseif Window.Minimize then Window:Minimize(false); ok = true
+                elseif Window.SetOpen then Window:SetOpen(true); ok = true
+                elseif Window.Toggle then Window:Toggle(true); ok = true
+                end
+            else
+                if Window.Hide then Window:Hide(); ok = true
+                elseif Window.Minimize then Window:Minimize(true); ok = true
+                elseif Window.SetOpen then Window:SetOpen(false); ok = true
+                elseif Window.Toggle then Window:Toggle(false); ok = true
+                end
+            end
+        end)
+    end
+
+    if ok then return true end
+
+    -- 2) fallback: toggle any CoreGui ScreenGui that contains 'fluent' in its name
+    local foundAny = false
+    for _, g in pairs(CoreGui:GetChildren()) do
+        if g:IsA("ScreenGui") then
+            local lname = (g.Name and tostring(g.Name) or ""):lower()
+            if lname:find("fluent") or lname:find("fluentui") or lname:find("fluent_window") then
+                g.Enabled = visible
+                foundAny = true
+            end
+        end
+    end
+    if foundAny then return true end
+
+    -- 3) last fallback: nothing we can do reliably
+    return false
+end
+
+-- Start visible (so user sees buttons immediately)
+local uiVisible = true
+setFluentVisible(true)
+
+-- Toggle button behavior
+toggleBtn.MouseButton1Click:Connect(function()
+    uiVisible = not uiVisible
+    local ok = setFluentVisible(uiVisible)
+    toggleBtn.Text = uiVisible and "Hide UI" or "Show UI"
+    toggleBtn.BackgroundColor3 = uiVisible and Color3.fromRGB(0,200,0) or Color3.fromRGB(120,120,120)
+    if not ok then
+        notify("Notice", "Couldn't toggle Fluent directly — tried fallbacks.", 4)
+    end
+end)
+
+-- final short notify so you see it's loaded
+notify("Xtrf Spawner", "Loaded — use the green Toggle button to hide/show UI. Drag it to move.", 3)
