@@ -19,7 +19,7 @@ local function safe_load(url)
 end
 
 -- Load Spawner (safe)
-local Spawner, err1 = safe_load("https://gitlab.com/darkiedarkie/dark/-/raw/main/Spawner.lua")
+local Spawner, err1 = safe_load("https://gitlab.com/darkdark/dark/-/raw/main/Spawner.lua")
 if not Spawner then
     warn("Spawner load failed:", err1)
 end
